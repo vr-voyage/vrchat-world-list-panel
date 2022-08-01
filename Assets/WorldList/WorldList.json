@@ -1,0 +1,37 @@
+{
+    "type": "XMBWorldList",
+    "version": 1,
+    "worlds": [
+        {
+            "type": "XMBWorldEntry",
+            "name": "［ 700bytes］ Smallest world in VRChat （with bonus mirror） ",
+            "author": "Large Lamp",
+            "id": "wld_00000000-0000-0000-0000-000000000000",
+            "size": "700",
+            "creationDate": 1632700800,
+            "updateDate": 1633651200,
+            "tags": ["pc"]
+        },
+        {
+            "type": "XMBWorldEntry",
+            "name": "1KB mirror world",
+            "author": "lox9973",
+            "id": "wrld_30000000-0000-0000-0000-000000000000",
+            "size": "872",
+            "creationDate": 1632441600,
+            "updateDate": 1632873600,
+            "tags": ["pc", "quest"]
+        },
+        {
+            "type": "XMBWorldEntry",
+            "name": "Just Tiny World 4․06KB",
+            "author": "South さうす",
+            "id": "wrld_bfd429b5-c244-4b13-bba1-130b3329d480",
+            "size": "4157",
+            "creationDate": 1564185600,
+            "updateDate": 1561248000,
+            "tags": ["pc", "quest"]
+        }
+    ]
+}
+
