@@ -1055,6 +1055,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 6555147207743640194, guid: 1a03c454a531705489f0410dee0e33a0,
         type: 3}
+    - target: {fileID: 6555147208818433433, guid: 1a03c454a531705489f0410dee0e33a0,
+        type: 3}
+      propertyPath: ChangeAvatarsOnUse
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6555147209204674186, guid: 1a03c454a531705489f0410dee0e33a0,
         type: 3}
       propertyPath: serializationData.Prefab
