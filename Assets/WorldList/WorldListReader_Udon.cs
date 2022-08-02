@@ -1,9 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Text;
+﻿
+using System.Globalization;
+using UdonSharp;
 using UnityEngine;
+using VRC.SDKBase;
+using VRC.Udon;
 
-public class WorldListReader : MonoBehaviour
+public class WorldListReader_Udon : UdonSharpBehaviour
 {
     public Texture2D texture;
 
@@ -34,7 +36,7 @@ public class WorldListReader : MonoBehaviour
         return ((high << 32) | low);
     }
 
-    public static readonly int bytesPerColor = 4;
+    public const int bytesPerColor = 4;
 
     private byte[] PixelsToBytes(Color32[] colors, int colorIndex, int arraySize)
     {
@@ -53,11 +55,14 @@ public class WorldListReader : MonoBehaviour
         return bytes;
     }
 
+    public const int char_size = 2;
+    public const int ulong_size = 8;
+
     private string UTF16PixelsToString(
         Color32[] colors, int colorIndex,
         int maxStringByteSize)
     {
-        int maxChars = maxStringByteSize / sizeof(char);
+        int maxChars = maxStringByteSize / char_size;
 
         char[] chars = new char[maxChars];
 
@@ -81,24 +86,24 @@ public class WorldListReader : MonoBehaviour
         for (int i = 0; i < maxStringByteSize; i += bytesPerColor, colorIndex++)
         {
             Color32 color = colors[colorIndex];
-            convertedChars[i + 0] = (char) color.r;
-            convertedChars[i + 1] = (char) color.g;
-            convertedChars[i + 2] = (char) color.b;
-            convertedChars[i + 3] = (char) color.a;
+            convertedChars[i + 0] = (char)color.r;
+            convertedChars[i + 1] = (char)color.g;
+            convertedChars[i + 2] = (char)color.b;
+            convertedChars[i + 3] = (char)color.a;
         }
 
         return new string(convertedChars);
     }
 
-    public static readonly int XMBF = 0x46424d58;
-    public static readonly int EST0 = 0x00545345;
-    public static readonly int VOYA = 0x41594f56;
-    public static readonly int GE00 = 0x00004547;
+    public const int XMBF = 0x46424d58;
+    public const int EST0 = 0x00545345;
+    public const int VOYA = 0x41594f56;
+    public const int GE00 = 0x00004547;
 
-    public const int nameByteSize   = 256;
+    public const int nameByteSize = 256;
     public const int authorByteSize = 128;
-    public const int worldIDSize    = 64;
-    public const int tagsByteSize   = 32;
+    public const int worldIDSize = 64;
+    public const int tagsByteSize = 32;
 
     void ReadEntry(Color32[] pixels, int entryIndex)
     {
@@ -116,10 +121,10 @@ public class WorldListReader : MonoBehaviour
         entryIndex += (tagsByteSize / bytesPerColor);
 
         ulong creationEpoch = PixelsToULong(pixels, entryIndex);
-        entryIndex += (sizeof(ulong) / bytesPerColor);
+        entryIndex += (ulong_size / bytesPerColor);
 
         ulong lastUpdateEpoch = PixelsToULong(pixels, entryIndex);
-        entryIndex += (sizeof(ulong) / bytesPerColor);
+        entryIndex += (ulong_size / bytesPerColor);
 
         ulong size = PixelsToULong(pixels, entryIndex);
 
@@ -164,18 +169,10 @@ public class WorldListReader : MonoBehaviour
 
         for (int i = 0; i < entries; i++)
         {
-            int cursor = ((512 / bytesPerColor) * (i+1));
+            int cursor = ((512 / bytesPerColor) * (i + 1));
             ReadEntry(pixels, cursor);
         }
 
 
-    }
-
-
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

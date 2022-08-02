@@ -15,15 +15,41 @@ namespace Voyage
             string str,
             int bytesLimit)
         {
-            byte[] stringBytes = Encoding.UTF8.GetBytes(str);
-            int length = stringBytes.Length;
-            if (length > bytesLimit)
+            char[] stringChars = str.ToCharArray();
+            int charsLimit = bytesLimit / sizeof(char);
+            if (stringChars.Length > charsLimit)
             {
                 throw new IndexOutOfRangeException(
-                    $"String {str} cannot fit in {bytesLimit} bytes ({length} bytes)");
+                    $"String {str} cannot fit in {bytesLimit} bytes ({stringChars.Length * sizeof(char)} bytes)");
             }
 
-            writer.Write(stringBytes, 0, length);
+            /* So, BinaryWriter seems to be coded by people that think
+             * that "it's ok to just convert a char[] to UTF8 and
+             * encode UTF8 characters" instead of, like,
+             * ENCODING THE 16 BITS CHARACTERS AS IS !
+             */
+            foreach (char c in stringChars)
+            {
+                ushort val = (ushort)c;
+                writer.Write(val);
+            }
+            //writer.Write(stringChars, 0, stringChars.Length);
+        }
+
+        public static void WriteASCIIString(
+            this BinaryWriter writer,
+            string str,
+            int bytesLimit)
+        {
+            byte[] asciiEncoded = Encoding.ASCII.GetBytes(str);
+            int asciiSize = asciiEncoded.Length;
+            if (asciiSize > bytesLimit)
+            {
+                throw new IndexOutOfRangeException(
+                    $"String {str} cannot fit in {bytesLimit} bytes ({asciiSize} bytes)");
+            }
+
+            writer.Write(asciiEncoded, 0, asciiSize);
         }
     }
 
@@ -80,24 +106,17 @@ namespace Voyage
             saveDir = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>("Assets");
         }
 
-        const int float_size = 4;
-        const int int_size = 4;
-
-        void DumpMetadata(float[] metadata)
-        {
-            Debug.Log($"{(int)metadata[0]:X} {(int)metadata[1]:X}");
-            Debug.Log($"vertices : {metadata[2]}");
-            Debug.Log($"normals  : {metadata[3]}");
-            Debug.Log($"uvs      : {metadata[4]}");
-            Debug.Log($"indices  : {metadata[5]}");
-        }
-
-        public byte TAG_PC    = 1;
-        public byte TAG_QUEST = 2;
+        public const byte TAG_PC    = 1;
+        public const byte TAG_QUEST = 2;
 
         public const int nameByteSize = 256;
         public const int authorByteSize = 128;
         public const int worldIDSize = 64;
+
+        public const int XMBF = 0x46424d58;
+        public const int EST0 = 0x00545345;
+        public const int VOYA = 0x41594f56;
+        public const int GE00 = 0x00004547;
 
         void WriteEntry(BinaryWriter writer, JSONXMBEntry entry)
         {
@@ -127,16 +146,16 @@ namespace Voyage
             writer.BaseStream.Position = cursor + authorByteSize;
 
             cursor = writer.BaseStream.Position;
-            writer.WriteString(entry.id, worldIDSize);
+            writer.WriteASCIIString(entry.id, worldIDSize);
             writer.BaseStream.Position = cursor + worldIDSize;
 
             cursor = writer.BaseStream.Position;
             writer.Write(tags);
             writer.BaseStream.Position = cursor + 32; // 256 bits
 
-            writer.Write(entry.creationDate);
-            writer.Write(entry.updateDate);
-            writer.Write(entry.size);
+            writer.Write(createdAt);
+            writer.Write(updatedAt);
+            writer.Write(byteSize);
 
             return;
         }
@@ -150,13 +169,13 @@ namespace Voyage
 
             /* uint32[4] magic */
             uint[] magic = new uint[4];
-            magic[0] = 0x46424d58; // XMBF
-            magic[1] = 0x00545345; // EST0
-            magic[2] = 0x41594f56; // VOYA
-            magic[3] = 0x00004547; // GE00
+            magic[0] = XMBF; // XMBF
+            magic[1] = EST0; // EST0
+            magic[2] = VOYA; // VOYA
+            magic[3] = GE00; // GE00
 
-            int version = 0;
-            int entries = listing.worlds.Length;
+            uint version = 0;
+            uint entries = (uint) listing.worlds.Length;
             ulong last_updated = 1659368079;
 
             foreach (uint magicNumber in magic)
@@ -190,6 +209,26 @@ namespace Voyage
             return texture;
         }
 
+        private void SetTextureImportSetttings(string texturePath)
+        {
+            TextureImporter importer = AssetImporter.GetAtPath(texturePath) as TextureImporter;
+            if (importer == null)
+            {
+                Debug.LogError($"No texture at {texturePath}");
+                return;
+            }
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.filterMode = FilterMode.Point;
+            importer.mipmapEnabled = false;
+            importer.sRGBTexture = true;
+            importer.isReadable = true;
+
+            var defaultSettings = importer.GetDefaultPlatformTextureSettings();
+            defaultSettings.format = TextureImporterFormat.RGBA32;
+            importer.SetPlatformTextureSettings(defaultSettings);
+            importer.SaveAndReimport();
+        }
+
         private void OnGUI()
         {
 
@@ -206,6 +245,7 @@ namespace Voyage
 
             if (GUILayout.Button("Generate texture from listing"))
             {
+
                 JSONXMBListing listing = JsonUtility.FromJson<JSONXMBListing>(worldListJsonAsset.text);
 
                 Debug.Log($"listing : {listing.type} version {listing.version}");
@@ -226,9 +266,13 @@ namespace Voyage
                 if (texture == null) return;
 
                 byte[] pngData = texture.EncodeToPNG();
-                File.WriteAllBytes($"{assetsDir}/{saveFilePath}", pngData);
+                string texturePath = $"{assetsDir}/{saveFilePath}";
+                File.WriteAllBytes(texturePath, pngData);
 
                 AssetDatabase.Refresh();
+
+                SetTextureImportSetttings($"Assets/{saveFilePath}");
+
 
             }
         }
